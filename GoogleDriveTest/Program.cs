@@ -3,6 +3,7 @@ using Google.Apis.Drive.v3;
 using System.IO;
 using System.Collections.Generic;
 using Google.Apis.Download;
+using System.Linq;
 
 namespace GoogleDriveTest
 {
@@ -14,14 +15,26 @@ namespace GoogleDriveTest
       {
         var clienteNome = "Tenant1";
         var service = BuildAuth.AuthenticateServiceAccount();
+        var parentFolderId = "1Qsgg_CnXttRAGN1VpNwLqVITmHcINqBT";
 
-        static List<string> GetFilesId(DriveService service, string clienteNome)
+        Console.WriteLine($"Nome da pasta do Cliente: {clienteNome}\n");
+
+        static string GetClienteFolderId(DriveService service, string clienteNome, string parentFolderId)
         {
-          List<string> ids = new List<string>();
+          var folder = service.Files.List();
+          folder.Q = $"parents in '{parentFolderId}' and name = '{clienteNome}'";
+          var response = folder.Execute();
+
+          return response.Files[0].Id;
+        }
+        
+        static List<Arquivo> GetFilesIdDrive(DriveService service, string clienteNome, string parentFolderId)
+        {
+          var arquivos = new List<Arquivo>();
 
           //Encontrar a pasta com o nome do cliente
           var folder = service.Files.List();
-          folder.Q = $"parents in '1Qsgg_CnXttRAGN1VpNwLqVITmHcINqBT' and name = '{clienteNome}'";
+          folder.Q = $"parents in '{parentFolderId}' and name = '{clienteNome}'";
           var response = folder.Execute();
 
 
@@ -31,20 +44,17 @@ namespace GoogleDriveTest
           var responseFiles = files.Execute();
 
 
-          foreach(var file in responseFiles.Files) ids.Add(file.Id);
-
-          return ids;
+          foreach(var file in responseFiles.Files)
+          {                     
+            arquivos.Add(new Arquivo { Nome = file.Name, Id = file.Id});
+          }
+            
+          return arquivos;
         }
 
-        foreach(var id in GetFilesId(service, clienteNome))
+        static void UploadFile(DriveService service, string clienteNome, string parentFolderId, string arquivoNome)
         {
-          UploadFile(service, id);
-          DownLoadFile(service, id);
-        }
-
-        static void UploadFile(DriveService service, string fileId)
-        {
-          // Upload file photo.jpg on drive.
+          // Upload file DDD.pdf on drive.
           FilesResource.CreateMediaUpload request;
 
           //Procura os arquivos, podendo diferenciar o mimeType para text, image....
@@ -55,15 +65,15 @@ namespace GoogleDriveTest
           // Create a new file on drive.
           var fileMetadata = new Google.Apis.Drive.v3.Data.File()
           {
-            Name = "DDD.pdf",
+            Name = arquivoNome.Split('\\').Last(),
             Parents = new List<string>()
             {
-              //Deve apenas existir 1 pasta com o nome de cada tenant, caso ao contrário isso aqui vai estourar um erro.
-              fileId
+              //Deve apenas existir 1 pasta com o nome de cada cliente, caso ao contrário isso aqui vai estourar um erro.
+              GetClienteFolderId(service, clienteNome, parentFolderId)
             }
           };
 
-          using (var stream = new FileStream("D:\\Imagem\\DDD.pdf", FileMode.Open))
+          using (var stream = new FileStream(arquivoNome, FileMode.Open))
           {
             // Create a new file, with metadata and stream.
             request = service.Files.Create(
@@ -76,10 +86,8 @@ namespace GoogleDriveTest
 
           var file = request.ResponseBody;
 
-
-          // Prints the uploaded file id.
-          Console.WriteLine("ID do arquivo: " + file.Id + "\nNome do arquivo: " + file.Name);
-          //Console.WriteLine("Nome da pasta do Cliente: " + clienteNome + "\nID da pasta do cliente: " + file.Parents[0]);
+     
+          Console.WriteLine($"Arquivo Criado: \nID do arquivo: {file.Id} \nNome do arquivo:  { file.Name } \n");         
         }
     
         static void DownLoadFile(DriveService service, string fileId)
@@ -120,13 +128,32 @@ namespace GoogleDriveTest
         {
           try
           {
-            service.Files.Delete(fileId).Execute();
+            service.Files.Delete(fileId).Execute();           
           }
           catch (Exception e)
           {
             Console.WriteLine("An error occurred: " + e.Message);
           }
         }
+
+        static string[] GetAllFilesFromDirectory()
+        {
+          string[] fileArray = Directory.GetFiles("D:\\DocumentosPdf", "*.pdf");
+
+          return fileArray;
+        }
+
+        foreach (var arquivoNome in GetAllFilesFromDirectory())
+        {
+          UploadFile(service, clienteNome, parentFolderId, arquivoNome);
+        }
+
+
+        //foreach (var arquivo in GetFilesIdDrive(service, clienteNome, parentFolderId))
+        //{
+        //  DeleteFile(service, arquivo.Id);
+        //  Console.WriteLine($"Arquivo Deletado: \nID do arquivo: {arquivo.Id} \nNome do arquivo:  { arquivo.Nome } \n");
+        //}
 
       }
       catch (Exception e)

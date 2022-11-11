@@ -3,8 +3,6 @@ using System;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using System.IO;
-using System.Security.Cryptography.X509Certificates;
-using Google.Apis.AnalyticsReporting.v4;
 
 
 namespace GoogleDriveTest
