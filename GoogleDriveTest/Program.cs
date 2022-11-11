@@ -16,7 +16,6 @@ namespace GoogleDriveTest
         var clienteNome = "Tenant1";
         var service = BuildAuth.AuthenticateServiceAccount();
         var parentFolderId = "1Qsgg_CnXttRAGN1VpNwLqVITmHcINqBT";
-
         Console.WriteLine($"Nome da pasta do Cliente: {clienteNome}\n");
 
         static string GetClienteFolderId(DriveService service, string clienteNome, string parentFolderId)
@@ -90,7 +89,7 @@ namespace GoogleDriveTest
           Console.WriteLine($"Arquivo Criado: \nID do arquivo: {file.Id} \nNome do arquivo:  { file.Name } \n");         
         }
     
-        static void DownLoadFile(DriveService service, string fileId)
+        static void DownLoadFile(DriveService service, string fileId, string arquivoNome)
         {
           var request = service.Files.Get(fileId);
           var stream = new MemoryStream();
@@ -118,9 +117,10 @@ namespace GoogleDriveTest
                 }
             }
           };
+
           request.Download(stream);
 
-          FileStream file1 = new FileStream($"D:\\Imagem\\{fileId}.pdf", FileMode.Create, FileAccess.Write);
+          FileStream file1 = new FileStream($"D:\\DocumentosPdf\\{arquivoNome}.pdf", FileMode.Create, FileAccess.Write);
           stream.WriteTo(file1);
         }
 
@@ -143,17 +143,29 @@ namespace GoogleDriveTest
           return fileArray;
         }
 
-        foreach (var arquivoNome in GetAllFilesFromDirectory())
+
+        switch (args[0])
         {
-          UploadFile(service, clienteNome, parentFolderId, arquivoNome);
+          case "upload":
+            foreach (var arquivoNome in GetAllFilesFromDirectory()) 
+              UploadFile(service, clienteNome, parentFolderId, arquivoNome);
+            break;
+          case "download":
+            foreach (var arquivo in GetFilesIdDrive(service, clienteNome, parentFolderId)) 
+              DownLoadFile(service, arquivo.Id, arquivo.Nome);
+            break;
+          case "delete":
+            foreach (var arquivo in GetFilesIdDrive(service, clienteNome, parentFolderId))
+            {
+              DeleteFile(service, arquivo.Id);
+              Console.WriteLine($"Arquivo Deletado: \nID do arquivo: {arquivo.Id} \nNome do arquivo:  { arquivo.Nome } \n");
+            };
+            break;
+          default:
+            Console.Write("Comando Invalido", args[0]);
+            break;
         }
 
-
-        //foreach (var arquivo in GetFilesIdDrive(service, clienteNome, parentFolderId))
-        //{
-        //  DeleteFile(service, arquivo.Id);
-        //  Console.WriteLine($"Arquivo Deletado: \nID do arquivo: {arquivo.Id} \nNome do arquivo:  { arquivo.Nome } \n");
-        //}
 
       }
       catch (Exception e)
