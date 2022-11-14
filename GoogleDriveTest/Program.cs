@@ -16,6 +16,7 @@ namespace GoogleDriveTest
         var clienteNome = "Tenant1";
         var service = BuildAuth.AuthenticateServiceAccount();
         var parentFolderId = "1Qsgg_CnXttRAGN1VpNwLqVITmHcINqBT";
+
         Console.WriteLine($"Nome da pasta do Cliente: {clienteNome}\n");
 
         static string GetClienteFolderId(DriveService service, string clienteNome, string parentFolderId)
